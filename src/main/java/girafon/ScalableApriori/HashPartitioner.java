@@ -1,4 +1,4 @@
-package girafon.MapFIM;
+package girafon.ScalableApriori;
 
 import org.apache.hadoop.mapreduce.Partitioner;
 

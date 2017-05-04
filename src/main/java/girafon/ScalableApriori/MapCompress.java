@@ -1,4 +1,4 @@
-package girafon.MapFIM;
+package girafon.ScalableApriori;
 
 import java.io.BufferedReader;
 import java.io.IOException;

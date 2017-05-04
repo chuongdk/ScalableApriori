@@ -1,4 +1,4 @@
-package girafon.MapFIM;
+package girafon.ScalableApriori;
 
 import static com.google.common.collect.Maps.newHashMap;
 

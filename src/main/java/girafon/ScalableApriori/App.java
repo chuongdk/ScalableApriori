@@ -1,4 +1,4 @@
-package girafon.MapFIM;
+package girafon.ScalableApriori;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -96,6 +96,11 @@ public class App extends Configured implements Tool {
 		return new Path(conf.get("output") + sep + "compressedData");
 	}
 	
+	private Path getFrequentItemsPath(Configuration conf) {
+		String sep = System.getProperty("file.separator");
+		System.out.println("Getting path of frequent items");
+		return new Path(conf.get("output") + sep + "1");
+	}	
 	
 	private Path getCandidatePath(Configuration conf) throws IOException {
 		String sep = System.getProperty("file.separator");
@@ -191,6 +196,7 @@ public class App extends Configured implements Tool {
 			
 			Configuration conf = setupConf(args, 0);
 			conf.setInt("support", 1);  // because we compress data
+			
 			Job job = setupJobStep1B(conf);	
 			
 			// add frequent items to distributed cache
