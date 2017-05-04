@@ -1,0 +1,14 @@
+/home/chuong/workspace/MapFIM/src/main/java/girafon/MapFIM/TrieNode.java
+/home/chuong/workspace/MapFIM/src/main/java/girafon/MapFIM/Item.java
+/home/chuong/workspace/MapFIM/src/main/java/girafon/MapFIM/HashPartitioner.java
+/home/chuong/workspace/MapFIM/src/main/java/girafon/MapFIM/App.java
+/home/chuong/workspace/MapFIM/src/main/java/girafon/MapFIM/Trie.java
+/home/chuong/workspace/MapFIM/src/main/java/girafon/MapFIM/MapperBetaPrefix.java
+/home/chuong/workspace/MapFIM/src/main/java/girafon/MapFIM/MAprioriReducer.java
+/home/chuong/workspace/MapFIM/src/main/java/girafon/MapFIM/MAprioriMapperCompressData.java
+/home/chuong/workspace/MapFIM/src/main/java/girafon/MapFIM/MAprioriCombiner.java
+/home/chuong/workspace/MapFIM/src/main/java/girafon/MapFIM/MAprioriReducerStepK.java
+/home/chuong/workspace/MapFIM/src/main/java/girafon/MapFIM/MAprioriMapper.java
+/home/chuong/workspace/MapFIM/src/main/java/girafon/MapFIM/ReducerBetaPrefix.java
+/home/chuong/workspace/MapFIM/src/main/java/girafon/MapFIM/MAprioriMapperStepK.java
+/home/chuong/workspace/MapFIM/src/main/java/girafon/MapFIM/Transaction.java

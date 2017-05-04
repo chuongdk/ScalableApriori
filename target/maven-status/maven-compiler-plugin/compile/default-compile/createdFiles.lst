@@ -1,0 +1,14 @@
+girafon/MapFIM/App.class
+girafon/MapFIM/HashPartitioner.class
+girafon/MapFIM/TrieNode.class
+girafon/MapFIM/ReducePreprocess.class
+girafon/MapFIM/CombinePreprocess.class
+girafon/MapFIM/Trie.class
+girafon/MapFIM/Transaction.class
+girafon/MapFIM/Item.class
+girafon/MapFIM/MAprioriMapperStepK.class
+girafon/MapFIM/MAprioriReducerStepK.class
+girafon/MapFIM/MapCompress.class
+girafon/MapFIM/MapperBetaPrefix.class
+girafon/MapFIM/ReducerBetaPrefix.class
+girafon/MapFIM/MapPreprocess.class
