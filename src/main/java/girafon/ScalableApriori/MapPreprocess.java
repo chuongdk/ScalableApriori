@@ -25,5 +25,5 @@ public class MapPreprocess
 	     context.write(word, one);
 	   }
 	 }
-	}
+}
 

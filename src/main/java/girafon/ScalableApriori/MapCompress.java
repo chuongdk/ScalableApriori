@@ -28,7 +28,11 @@ public class MapCompress
     // read all frequent item from the cache
     private void getCache(Context context) throws IOException {
 		 // Read file from distributed caches - each line is a item/itemset with its frequent
-
+    	Path l1Path = App.getFrequentItemsPath(context.getConfiguration());
+    	   	
+    	
+    	
+    	
     	// get caches files.
 		for (int i = 0; i < 10; i++)
 			System.out.println("SETUP ------ MAPPER ----------- GET FREQUENT ITEMS--------------");

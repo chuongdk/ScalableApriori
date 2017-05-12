@@ -39,9 +39,6 @@ import org.apache.hadoop.util.ToolRunner;
 
 public class App extends Configured implements Tool {
 
-	private long maxCandidate = 10000000;
-
-	private int maxfullBetaPrefix = 500000; // each time we send only 10000 beta Prefix to sold
 	
 	private int numberReducers = 2;
 	
@@ -49,36 +46,11 @@ public class App extends Configured implements Tool {
 	
 	
 	
-	
-	private long maxCache = maxCandidate;
-	
-	
-
-	
-	
-	
-	
-	
-	private ArrayList<Path> queuePrefix = new ArrayList<Path>();
-	private ArrayList<Path> queueCandidate = new ArrayList<Path>();
-	
-	
-	// List that contain all prefix with alpha <= support < beta
-
-    private List<List<Integer>> fullBetaPrefix = new  ArrayList<List<Integer>>();
-    
-    private List<List<Integer>> betaPrefix = new  ArrayList<List<Integer>>();
-    
-
-
-    
+   
 	
 	// we will output to Output/1,2,3,4
 	private Path getOutputPath(Configuration conf, int iteration) {
 		String sep = System.getProperty("file.separator");
-		System.out.println("Uls"
-				+ "sing output " + conf.get("output") + sep + String.valueOf(iteration));
-		
 		return new Path(conf.get("output") + sep + String.valueOf(iteration));
 	}
 	
@@ -92,11 +64,10 @@ public class App extends Configured implements Tool {
 	
 	private Path getInputPathCompressData(Configuration conf) {
 		String sep = System.getProperty("file.separator");
-		System.out.println("Using input " + conf.get("output") + sep + "compressedData");
 		return new Path(conf.get("output") + sep + "compressedData");
 	}
 	
-	private Path getFrequentItemsPath(Configuration conf) {
+	public static Path getFrequentItemsPath(Configuration conf) {
 		String sep = System.getProperty("file.separator");
 		System.out.println("Getting path of frequent items");
 		return new Path(conf.get("output") + sep + "1");
@@ -154,26 +125,48 @@ public class App extends Configured implements Tool {
 	}
 	
 
-	Job setupJobStep1B(Configuration conf) throws Exception {
-		Job job = Job.getInstance(conf, "Compress Data");
-		job.setJarByClass(App.class);
-		job.setMapperClass(MapCompress.class);
-		
-		job.setCombinerClass(CombinePreprocess.class);
-		job.setReducerClass(ReducePreprocess.class);
+	private void addL1ToDistributedCache(Configuration conf, Job job) throws IOException {
 
+		FileSystem fs = FileSystem.get(conf);
+		FileStatus[] status = fs.listStatus(getOutputPath(conf, 1));	//récupère la liste des fichiers de sortie intermédiaires
+		
+		for(int i = 0; i<status.length; i++){
+			if(status[i].getPath().toString().contains("part-r-")) {
+				job.addCacheFile(status[i].getPath().toUri());
+				System.out.println("Adding to distributed Cache: " + status[i].getPath().toString());
+			}
+		}
+	}
+	
+	
+	Job setupJobCandidateGeneration(Configuration conf, int k) throws Exception {
+		Job job = Job.getInstance(conf, "MapFIM: preparation - Finding frequent Items");
+		job.setJarByClass(App.class);
+		job.setMapperClass(MapCandidateGeneration.class);
+		job.setCombinerClass(CombinePreprocess.class);
+		job.setReducerClass(ReduceCandidateGeneration.class);
+		job.setNumReduceTasks(numberReducers);
 		job.setOutputKeyClass(Text.class);
 		job.setOutputValueClass(IntWritable.class);
+		addL1ToDistributedCache(conf, job);
 		
-		job.setNumReduceTasks(numberReducers);
-
+		// Input is L_k-1
+		FileSystem fs = FileSystem.get(conf);
+		FileStatus[] status = fs.listStatus(getOutputPath(conf, k-1));	//récupère la liste des fichiers de sortie intermédiaires
+		// Add only part-r-000x files
+		for(int i = 0; i<status.length; i++){
+			if(status[i].getPath().toString().contains("part-r-")) {
+				FileInputFormat.addInputPath(job, status[i].getPath());
+			}
+		}
 		
-		FileInputFormat.addInputPath(job, getInputPath(conf));
-		FileOutputFormat.setOutputPath(job, getOutputPathCompressData(conf));// output path for iteration 1 is: output/1
+		FileOutputFormat.setOutputPath(job, getOutputPath(conf, 2));// output path for iteration 1 is: output/1
+		
 		return job;
 	}
 	
-		
+	
+	
 	public int run(String[] args) throws Exception {
 		if (Integer.parseInt(args[4]) > 0)
 			maxfullBetaPrefix = Integer.parseInt(args[4]);
@@ -187,42 +180,34 @@ public class App extends Configured implements Tool {
 		}
 		
  
-		// Iteration 1b - to compress data 
-		 {
-			// Now, Queue contains all frequent items
+			
+		// Candidate generation, k = 2
+		int k = 2;
 
-			System.out.println("__________________STEP 1B _____________________");
-			System.out.println("__________________STEP 1B _____________________");
-			
-			Configuration conf = setupConf(args, 0);
-			conf.setInt("support", 1);  // because we compress data
-			
-			Job job = setupJobStep1B(conf);	
-			
-			// add frequent items to distributed cache
-			//addCacheFilesFromQueue(conf, job, false);
-			
-			job.waitForCompletion(true);
-		}		
-		 
+		{
+			System.out.println("-------------------Candidate Generation ---------------");
+			System.out.println("-------------------Candidate Generation ---------------");
+			System.out.println("-------------------Candidate Generation ---------------");
+			Configuration conf = setupConf(args, k);
+			Job job = setupJobCandidateGeneration(conf, k);			 
+			job.waitForCompletion(true);			
+		}
 		
-
+	
 		return 1;
 	}
 		
+	
+
 	public static void main(String[] args) throws Exception {
 		
 		long beginTime = System.currentTimeMillis();
-
 		int exitCode = ToolRunner.run(new App(), args);
-
 		long endTime = System.currentTimeMillis();
-		
 		
 		System.out.println("support : " + args[2]);
 		System.out.println("beta : " + args[3]);
-		System.out.println("Total time : " + (endTime - beginTime)/1000 + " seconds.");
-		
+		System.out.println("Total time : " + (endTime - beginTime)/1000 + " seconds.");		
 		System.exit(exitCode);
 	}
 
