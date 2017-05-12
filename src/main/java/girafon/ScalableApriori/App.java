@@ -42,7 +42,7 @@ public class App extends Configured implements Tool {
 	
 	private int numberReducers = 2;
 	
-	final long DEFAULT_SPLIT_SIZE = 2  * 1024 * 1024;  // 1M
+	final long DEFAULT_SPLIT_SIZE = 1  * 1024 * 1024;   
 	
 	
 	
@@ -165,9 +165,26 @@ public class App extends Configured implements Tool {
 				FileInputFormat.addInputPath(job, status[i].getPath());
 			}
 		}
-
 		// set output path: output/Candidate/Iteration
 		FileOutputFormat.setOutputPath(job, getOutputPathCandidate(conf, 2));// output path for iteration 1 is: output/1
+		
+		return job;
+	}
+
+	Job setupJobPartitionData(Configuration conf, int k) throws Exception {
+		Job job = Job.getInstance(conf, "MapFIM: Partion Data");
+		job.setJarByClass(App.class);
+		job.setMapperClass(MapPartitionData.class);
+//		job.setCombinerClass(CombinePreprocess.class);
+		job.setReducerClass(ReduceMiningApriori.class);
+		job.setNumReduceTasks(numberReducers);
+		job.setOutputKeyClass(Text.class);
+		job.setOutputValueClass(Text.class);
+ 
+		
+		FileInputFormat.addInputPath(job, getInputPathCompressData(conf));
+		// set output path: output/Candidate/Iteration
+		FileOutputFormat.setOutputPath(job, getOutputPath(conf, k));// output path for iteration 1 is: output/1
 		
 		return job;
 	}
@@ -220,8 +237,22 @@ public class App extends Configured implements Tool {
 			Job job = setupJobCandidateGeneration(conf, k);			 
 			job.waitForCompletion(true);			
 		}
+
+		// Chain Mappers 
+		// Mapper1: Partition data, Mapper2: Duplicate Candidate
+
 		
- 	
+		{
+			System.out.println("-------------------Mapper1: Partition Data---------------");
+			System.out.println("-------------------Mapper1: Partition Data---------------");
+			System.out.println("-------------------Mapper1: Partition Data---------------");			
+			Configuration conf = setupConf(args, k);
+			Job job = setupJobPartitionData(conf, k);			 
+			job.waitForCompletion(true);			
+		}
+
+		
+		
 		return 1;
 	}
 		
