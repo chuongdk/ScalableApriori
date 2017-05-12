@@ -1,4 +1,5 @@
 girafon/ScalableApriori/TrieNode.class
+girafon/ScalableApriori/ReduceCompress.class
 girafon/ScalableApriori/HashPartitioner.class
 girafon/ScalableApriori/ReducerBetaPrefix.class
 girafon/ScalableApriori/Item.class

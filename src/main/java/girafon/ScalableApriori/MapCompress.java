@@ -9,140 +9,74 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.StringTokenizer;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Mapper.Context;
 
 public class MapCompress 
-    extends Mapper<Object, Text, Text, IntWritable>{
-    	
-    // Hasp Map of Items
-    HashMap<Integer, Integer> hashItems = new HashMap<Integer, Integer>();
-    
-    private int nItems = 0;
-    private final static IntWritable one = new IntWritable(1);
-    
-    // read all frequent item from the cache
-    private void getCache(Context context) throws IOException {
-		 // Read file from distributed caches - each line is a item/itemset with its frequent
-    	Path l1Path = App.getFrequentItemsPath(context.getConfiguration());
-    	   	
-    	
-    	
-    	
-    	// get caches files.
-		for (int i = 0; i < 10; i++)
-			System.out.println("SETUP ------ MAPPER ----------- GET FREQUENT ITEMS--------------");
-		
-		
-		// URI to locate cachefile, ex URI a = new URI("http://www.foo.com");
-		List<URI> uris = Arrays.asList(context.getCacheFiles());
-		
-		System.out.println("Reading cached files");
-		// read cache files which contains candidates?
-		
-		nItems = 0;
-		
-		for (URI uri : uris) {
-			Path p = new Path(uri);
-			System.out.println("Loading " + uri.toString());
-			FileSystem fs = FileSystem.get(context.getConfiguration());
-			InputStreamReader ir = new InputStreamReader(fs.open(p));
-			BufferedReader data = new BufferedReader(ir);
-	    	while (data.ready()) {    		
-	    		String line=data.readLine();
-	    		if (line.matches("\\s*")) continue; // be friendly with empty lines
-	    		String[] numberStrings = line.split("\t");
-	    		
- 
-	    		int frequentItem = Integer.parseInt(numberStrings[0]);
-       			if (!hashItems.containsKey(frequentItem)) {
-	        				hashItems.put(frequentItem, nItems);
-	        				nItems++;
-	        			}
-	        		}
-	    		
-	    	}  
+extends Mapper<Object, Text, Text, Text>{
+	
 
-   }
-    
-    
-    protected void setup(Context context) throws IOException, InterruptedException {
-		System.out.println("Mapper getting Cache -- Reading Frequent Items ---------");
-		getCache(context); 
-		return;
-	}
+	 private Text word = new Text();
+	 private List<String> l1 = new ArrayList<String>();
+	
+	  private void getCache(Context context) throws IOException {
+			 // Read file from distributed caches - each line is a item/itemset with its frequent
+			Configuration config = context.getConfiguration();		
+		
+			// URI to locate cachefile, ex URI a = new URI("http://www.foo.com");
+			List<URI> uris = Arrays.asList(context.getCacheFiles());	
+			System.out.println("Reading cached files");
+			
+			for (URI uri : uris) {
+				Path p = new Path(uri);
+				//System.out.println("Loading " + uri.toString());
+				FileSystem fs = FileSystem.get(context.getConfiguration());
+				InputStreamReader ir = new InputStreamReader(fs.open(p));
+				BufferedReader data = new BufferedReader(ir);
+		    	while (data.ready()) {    		
+		    		String line=data.readLine();
+		    		if (line.matches("\\s*")) continue; // be friendly with empty lines
+		    		String item = line.substring(0, line.indexOf('\t'));
+		    		l1.add(item);
+		    	}  
+			}
+			return;
+	   }	 
 
-	 
-	 	  
-	 
-	 // Build the Trie. Reading one transaction => Add to trie with support count
 	 @Override
+	 protected void setup(Context context) throws IOException, InterruptedException {
+		//System.out.println("Mapper getting Cache");
+		getCache(context);			
+	}	  
+	  
 	 public void map(Object key, Text value, Context context
-	 
 	                 ) throws IOException, InterruptedException {
-		// read line by line, with each transaction, verify if a candidate is all in this transaction, if yes, write candiate, one
-		// value is a line
+		 // Mapper get Lk, then join Lk x L1
+		 List<String>  t = new ArrayList<String>();
 		 
-		String line = value.toString();
-		
-		// convert transaction to List<Integer>
-		String[] s = line.split(" ");
-		List<Integer> t = new ArrayList<Integer>();
-		
-		
-		// count how many frequent items appear in this transaction
-		int count = 0;
-		for(int i=0; i<s.length; i++) {
-		   t.add(Integer.parseInt(s[i]));
-		   if (hashItems.containsKey(Integer.parseInt(s[i])))
-				count++;
-		}
-		
-		// we export this transaction only if it contains at least 2 frequents items
-
-			 
-			 // remove unfrequent items
-		/*	 java.util.Iterator<Integer> it = t.iterator();
-			 while (it.hasNext()) {
-			     int item = it.next();
-			     if (!hashItems.containsKey(item)){
-			    	 it.remove();
-			 }*/
-					 
-
-		if (count >= 2) {
-			 Text word = new Text();
-			 String newT = new String();
-
-			 // we sort transaction t:
-			 Collections.sort(t);
-			 
-			 // convert transaction to List<Integer>
-			 for (Integer x: t)
-				 if (hashItems.containsKey(x)) {
-					newT = newT + x.toString() + " ";					
-				 }
-			 // now newT is the transaction with only frequent items, we will output it
-			 
-			 
-			 word.set(newT);
-
-			 context.write(word, one);
-			
-		}
+		 StringTokenizer itr = new StringTokenizer(value.toString());
+		 while (itr.hasMoreTokens()) {
+			 String item = itr.nextToken().toString();
+			 if (l1.contains(item))
+				 t.add(item);
+		 }
 		 
-		
-		
-			
-
-		
-
+		 if (t.size() > 1) {
+			 	// transaction are sorted
+			 	Collections.sort(t);
+				String out = String.join(" ", t); 				
+				word.set(out);
+				context.write(word, new Text(""));
+		 }
+		 
+		  		 
 	 }
-	 
-	 
-	}
+}
 

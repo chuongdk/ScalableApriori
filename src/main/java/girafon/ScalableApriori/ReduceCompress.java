@@ -8,20 +8,10 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.Reducer.Context;
 
-
-
-public class ReduceCandidateGeneration 
+public class ReduceCompress
 	extends Reducer<Text,IntWritable,Text,Text> {
-	
-	
-	private int count;
-	
-	@Override
-	protected void setup(Context context) throws IOException, InterruptedException {
-		Configuration config = context.getConfiguration();
-		count 	= config.getInt("iteration", 0);		
-		return;
-	}
+		
+
 	public void reduce(Text key, Iterable<IntWritable> values,
 	                Context context
 	                ) throws IOException, InterruptedException {
@@ -30,8 +20,7 @@ public class ReduceCandidateGeneration
 	     sum += val.get();
 	   }
 	   
-	   // is it a TRUE candidate 
-	   if (sum == count) {
+	   for (int i = 0; i < sum; i++) {
 		   context.write(key, new Text(""));
 	   }
 	}

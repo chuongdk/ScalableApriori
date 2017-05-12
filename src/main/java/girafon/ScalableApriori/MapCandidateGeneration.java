@@ -1,7 +1,7 @@
 package girafon.ScalableApriori;
 import java.io.IOException;
 
-
+import java.util.*;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
@@ -10,13 +10,9 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
-import java.util.List;
-import java.util.StringTokenizer;
+ 
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Iterator;
+ 
 import java.io.InputStreamReader;
 import java.io.BufferedReader;
 
@@ -25,7 +21,7 @@ extends Mapper<Object, Text, Text, IntWritable>{
 	
 	 private final static IntWritable one = new IntWritable(1);
 	 private Text word = new Text();
-	 private List<String> L1 = new ArrayList<String>();
+	 private List<String> l1 = new ArrayList<String>();
 	
 	  private void getCache(Context context) throws IOException {
 			 // Read file from distributed caches - each line is a item/itemset with its frequent
@@ -46,7 +42,7 @@ extends Mapper<Object, Text, Text, IntWritable>{
 		    		String line=data.readLine();
 		    		if (line.matches("\\s*")) continue; // be friendly with empty lines
 		    		String item = line.substring(0, line.indexOf('\t'));
-		    		L1.add(item);
+		    		l1.add(item);
 		    	}  
 			}
 			return;
@@ -60,13 +56,27 @@ extends Mapper<Object, Text, Text, IntWritable>{
 	  
 	 public void map(Object key, Text value, Context context
 	                 ) throws IOException, InterruptedException {
-	   StringTokenizer itr = new StringTokenizer(value.toString());
-	   while (itr.hasMoreTokens()) {
-	     word.set(itr.nextToken());
-	     
-	     
-	     context.write(word, one);
-	   }
+		 // Mapper get Lk, then join Lk x L1
+		 List<String>  lk = new ArrayList<String>();
+		 
+ 		 StringTokenizer itr = new StringTokenizer(value.toString());
+ 		 while (itr.hasMoreTokens()) {
+ 			 lk.add(itr.nextToken().toString());
+ 		 }
+ 		 lk.remove(lk.size()-1);
+
+ 		 for (String x:l1) {
+ 			 if (!lk.contains(x)) {
+ 				List<String> candidate = new ArrayList<String>(lk);
+ 				candidate.add(x);
+ 				Collections.sort(candidate);
+ 				String out = String.join(" ", candidate); 				
+ 				word.set(out);
+ 				context.write(word, one);
+ 			 }
+ 		 }
+ 		 
+ 		  		 
 	 }
 }
 

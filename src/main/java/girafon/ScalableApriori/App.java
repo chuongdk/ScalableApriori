@@ -54,6 +54,12 @@ public class App extends Configured implements Tool {
 		return new Path(conf.get("output") + sep + String.valueOf(iteration));
 	}
 	
+	// we will output to Output/1,2,3,4
+	private Path getOutputPathCandidate(Configuration conf, int iteration) {
+		String sep = System.getProperty("file.separator");
+		return new Path(conf.get("output") + sep + "Candidate" + sep + String.valueOf(iteration));
+	}	
+	
 	// we will output to Output/data
 	private Path getOutputPathCompressData(Configuration conf) {
 		String sep = System.getProperty("file.separator");
@@ -159,31 +165,53 @@ public class App extends Configured implements Tool {
 				FileInputFormat.addInputPath(job, status[i].getPath());
 			}
 		}
-		
-		FileOutputFormat.setOutputPath(job, getOutputPath(conf, 2));// output path for iteration 1 is: output/1
+
+		// set output path: output/Candidate/Iteration
+		FileOutputFormat.setOutputPath(job, getOutputPathCandidate(conf, 2));// output path for iteration 1 is: output/1
 		
 		return job;
 	}
 	
-	
+	Job setupJobCompressData(Configuration conf) throws Exception {
+		Job job = Job.getInstance(conf, "MapFIM: Compress Data / Removing non frequent items");
+		job.setJarByClass(App.class);
+		job.setMapperClass(MapCompress.class);
+		
+		// we don't need reducers
+//		job.setCombinerClass(CombinePreprocess.class);
+//		job.setReducerClass(ReduceCompress.class);
+		job.setNumReduceTasks(numberReducers);
+		job.setOutputKeyClass(Text.class);
+		job.setOutputValueClass(Text.class);
+		addL1ToDistributedCache(conf, job);
+		
+		FileInputFormat.addInputPath(job, getInputPath(conf));
+
+		// set output path: output/Compress
+		FileOutputFormat.setOutputPath(job, getOutputPathCompressData(conf));// output path for iteration 1 is: output/1
+		
+		return job;
+	}	
 	
 	public int run(String[] args) throws Exception {
-		if (Integer.parseInt(args[4]) > 0)
-			maxfullBetaPrefix = Integer.parseInt(args[4]);
-		
+	 
 		// Iteration 1
 		{
 			Configuration conf = setupConf(args, 1);
 			Job job = setupJobStep1(conf);			 
 			job.waitForCompletion(true);	
- 
 		}
 		
- 
+		
+		// Compress Data by removing non frequent items
+		{
+			Configuration conf = setupConf(args, 1);
+			Job job = setupJobCompressData(conf);			 
+			job.waitForCompletion(true);	
+		}		
 			
 		// Candidate generation, k = 2
-		int k = 2;
-
+ 		int k = 2;
 		{
 			System.out.println("-------------------Candidate Generation ---------------");
 			System.out.println("-------------------Candidate Generation ---------------");
@@ -193,7 +221,7 @@ public class App extends Configured implements Tool {
 			job.waitForCompletion(true);			
 		}
 		
-	
+ 	
 		return 1;
 	}
 		
