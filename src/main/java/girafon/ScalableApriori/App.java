@@ -49,7 +49,7 @@ public class App extends Configured implements Tool {
 	
 	private int numberReducers = 2;
 	
-	final long DEFAULT_SPLIT_SIZE = 1  * 1024 * 1024;   
+	final long DEFAULT_SPLIT_SIZE = 10  * 1024 * 1024;   
 	
 	final long DEFAULT_DATA_SIZE = 1 * 1024 * 1024; 
 	
@@ -60,6 +60,12 @@ public class App extends Configured implements Tool {
 		String sep = System.getProperty("file.separator");
 		return new Path(conf.get("output") + sep + String.valueOf(iteration));
 	}
+	
+	
+	private Path getOutputPathTemporary(Configuration conf, int iteration) {
+		String sep = System.getProperty("file.separator");
+		return new Path(conf.get("output") + sep + "temp" + sep +  String.valueOf(iteration));
+	}	
 	
 	// we will output to Output/1,2,3,4
 	private Path getOutputPathCandidate(Configuration conf, int iteration) {
@@ -206,29 +212,39 @@ public class App extends Configured implements Tool {
     }
 
 	Job setupJobPartitionData(Configuration conf, int k) throws Exception {
-
-		
 		Job job = Job.getInstance(conf, "MapFIM: Multiple Mappers : Partition and Duplicate, number of Block = " + conf.get("number block data"));
 		job.setJarByClass(App.class);
-//		 job.setMapperClass(MapPreprocess.class);
-//		job.setCombinerClass(CombinePreprocess.class);
 		MultipleInputs.addInputPath(job, getInputPathCompressData(conf), TextInputFormat.class, MapPartitionData.class);
 		MultipleInputs.addInputPath(job, getOutputPathCandidate(conf, 2), TextInputFormat.class, MapDuplicateCandidate.class);
-
-	 
 		job.setPartitionerClass(HashPartitioner.class);
-		
 		job.setReducerClass(ReduceMiningApriori.class);
 		job.setNumReduceTasks(numberReducers);
 		job.setOutputKeyClass(Text.class);
 		job.setOutputValueClass(Text.class);
-
-		
 		// set output path: output/Candidate/Iteration
-		FileOutputFormat.setOutputPath(job, getOutputPath(conf, k));// output path for iteration 1 is: output/1
-		
+		FileOutputFormat.setOutputPath(job, getOutputPathTemporary(conf, k));// output path for iteration 1 is: output/1
 		return job;
 	}
+
+	
+	Job setupJobGetLk(Configuration conf, int k) throws Exception {
+		Job job = Job.getInstance(conf, "MapFIM: Sum up to get Lk");
+		job.setJarByClass(App.class);
+		job.setMapperClass(MapSumUp.class);
+		job.setCombinerClass(CombinePreprocess.class);
+		job.setReducerClass(ReducePreprocess.class);
+		job.setNumReduceTasks(numberReducers);
+		job.setOutputKeyClass(Text.class);
+		job.setOutputValueClass(IntWritable.class);
+		
+		
+		FileInputFormat.addInputPath(job, getOutputPathTemporary(conf, k));// output path for iteration 1 is: output/1
+		FileOutputFormat.setOutputPath(job, getOutputPath(conf, k));// output path for iteration 1 is: output/1
+				
+		return job;
+	}
+
+	
 	
 	Job setupJobCompressData(Configuration conf) throws Exception {
 		Job job = Job.getInstance(conf, "MapFIM: Compress Data / Removing non frequent items");
@@ -279,22 +295,29 @@ public class App extends Configured implements Tool {
 			job.waitForCompletion(true);			
 		}
 
-		// Chain Mappers 
+		// Multi Mappers 
 		// Mapper1: Partition data, Mapper2: Duplicate Candidate
-
-		
 		{
-			System.out.println("-------------------Mapper1: Partition Data---------------");
-			System.out.println("-------------------Mapper1: Partition Data---------------");
-			System.out.println("-------------------Mapper1: Partition Data---------------");		
-
-		
-		
+			System.out.println("-------------------Mapper1+2: Partition Data AND Duplicate Candidate---------------");
+			System.out.println("-------------------Mapper1+2: Partition Data AND Duplicate Candidate---------------");
+			System.out.println("-------------------Mapper1+2: Partition Data AND Duplicate Candidate---------------");
+			
 			Configuration conf = setupConf(args, k);
 			Job job = setupJobPartitionData(conf, k);			 
 			job.waitForCompletion(true);			
 		}
 
+		
+		// Getting Lk
+		{
+			System.out.println("-------------------Sum up to get Lk---------------");
+			System.out.println("-------------------Sum up to get Lk---------------");
+			System.out.println("-------------------Sum up to get Lk---------------");
+			
+			Configuration conf = setupConf(args, k);
+			Job job = setupJobGetLk(conf, k);			 
+			job.waitForCompletion(true);			
+		}
 		
 		
 		return 1;
@@ -315,36 +338,6 @@ public class App extends Configured implements Tool {
 	}
 
 }
-
-
-
-
-
-
-class SplitMapper extends Mapper<Object,Text,Text,IntWritable>
-{
-    StringTokenizer xs;
-    private IntWritable dummyValue=new IntWritable(1);
-    //private String content;
-    private String tokens[];
-    @Override
-    public void map(Object key,Text value,Context context)throws IOException,InterruptedException{
-//      xs=new StringTokenizer(value.toString()," ");
-//      while(xs.hasMoreTokens())
-//      {
-//          content=(String)xs.nextToken();
-//      }
-        tokens=value.toString().split(" ");
-        for(String x:tokens)
-        {
-        context.write(new Text(x), dummyValue);
-        }
-    }   
-}
-
-
-
-
 
 
 

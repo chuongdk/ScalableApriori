@@ -15,7 +15,7 @@ public class HashPartitioner<K, V> extends Partitioner<K, V> {
 		
 		// now get the list
 		
-		String[] numberStrings = key.split(" ");
+		String[] numberStrings = key.split("\\s+");
 		
 		
 		int	newKey = Integer.parseInt(numberStrings[0]);

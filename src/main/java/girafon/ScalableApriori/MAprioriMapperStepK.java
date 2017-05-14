@@ -109,20 +109,7 @@ public class MAprioriMapperStepK
     private void generateCandidateAndTrie(){
     	
     	candidateTrie = new Trie(-1);
- /*      	for (int i = 0; i < prefix.size(); i++) {
-    		List<Integer> x = prefix.get(i);
-    		for (int j = i+1; j < prefix.size(); j++) {
-    			List<Integer> y = prefix.get(j);
-    			
-    			if (matchPrefix(x, y)) {
-	    			List<Integer> tempCandidate = new ArrayList<Integer>(x);
-	    			tempCandidate.add(y.get(y.size()-1));
-	
-	    			candidateTrie.addToTrie(tempCandidate);    			
-    			}
-    		}
-    	}
-    	*/
+ 
      	for (int i = 0; i < prefix.size(); i++) {
     		List<Integer> x = prefix.get(i);
     		candidateTrie.addToTrie(x);

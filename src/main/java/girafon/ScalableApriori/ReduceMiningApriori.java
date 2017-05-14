@@ -20,22 +20,90 @@ public class ReduceMiningApriori
 	List<String> candidate = new ArrayList<String>();
 	
 	
-	
+	// list of all prefix in the distributed cache 
+    private List<List<Integer>> prefix = new  ArrayList<List<Integer>>();
+    private Trie candidateTrie;    
 	
 	// build candidate tree
 	private void buildTree(){
+		candidateTrie = new Trie(-1);
 		
+    	for (String line: candidate) {
+    	//	System.out.println(line);
+    		if (line.matches("\\s*")) continue; // be friendly with empty lines
+    		// creat new prefix tempPrefix
+    		List<Integer> tempPrefix = new ArrayList<Integer>();
+    		String[] numberStrings = line.split("\\s+");
+    		for (int i = 0; i < numberStrings.length; i++){   
+    			tempPrefix.add(Integer.parseInt(numberStrings[i]));
+    		}    		
+    		// add p to the list of prefix
+    		candidateTrie.addToTrie(tempPrefix);
+    		
+    	}
 	}
 	
-	
+ 
+    
 	// minning: data x candidate
 	// output: many tube candidate/frequent
-	private void mining(){
+	private void mining(Context context) throws IOException, InterruptedException{
+		buildTree();
 		
+		// mining
+
+		for(String line:data){
+			String[] s = line.split("\\s+");
+			List<Integer> t = new ArrayList<Integer>();
+			for(int i=0; i<s.length; i++)
+			   t.add(Integer.parseInt(s[i]));
+		
+			// add 1 (number of transaction)
+			   t.add(1);
+			
+			// update support in Trie with transaction t
+			candidateTrie.updateSupport(t);
+		}
+		
+		// Output
+		 List<Integer> itemset = new ArrayList<Integer>();
+		 outToReducer(context, candidateTrie, itemset);
 	}
 	
 	
-	
+	 public void outToReducer(Context context, Trie trie, List<Integer> currentPrefix) throws IOException, InterruptedException {
+	      for (Integer x : trie.children.keySet()) {
+	    	Trie nextTrie = trie.children.get(x);
+	    	List<Integer> nextPrefix =  new ArrayList<>();
+	    	
+	    	for (Integer z : currentPrefix)
+	    		nextPrefix.add(z);
+	    	
+	    	nextPrefix.add(x);
+	    	
+	    	// a node is a leaf if its children = nullhs
+	    	if (nextTrie.children == null) {
+	    		if (nextTrie.support > 0) { 
+		    		Text key = new Text();
+		    		key.set(itemsetToString(nextPrefix));
+		    		String value = nextTrie.support + "";
+		    		
+		    		context.write(key, new Text(value));
+	    		}
+	    	}
+	    	else
+	    		outToReducer(context, nextTrie, nextPrefix);
+	      }
+	 }
+	 
+	 public static String itemsetToString(List<Integer> x) {
+		 String a = new String();
+		 a = x.get(0) + "";
+		 for (int i = 1; i < x.size(); i++)
+			 a = a + "\t" + x.get(i);
+		 return a;
+		 
+	 }	 
 	
 	// key: A space B. A = #block, B=0,1,2,3....
 	// B = 0: it is data, B > 0: it is candidate
@@ -69,6 +137,7 @@ public class ReduceMiningApriori
 			   // we mine Data x Candidate
 			   if (candidate.size()>0) {
 				   System.out.println("\n\n\n\n\n\nMining " + data.size() + " " + candidate.size());
+				   mining(context);
 			   }
 			   
 			   
@@ -86,16 +155,19 @@ public class ReduceMiningApriori
 	   }
 	   
 	   
-	   for (Text val : values) {
-		   context.write(key, val);
-	   }		   
+//	   for (Text val : values) {
+//		   context.write(key, val);
+//	   }		   
 	   
 	}
 	
 	// we handle the last block of Candidate
 	 @Override
 	 public void cleanup(Context context) throws IOException, InterruptedException {
-		 
+		   if (candidate.size()>0) {
+			   System.out.println("\n\n\n\n\n\nMining " + data.size() + " " + candidate.size());
+			   mining(context);
+		   }		 
 
 	 }	 	
 }

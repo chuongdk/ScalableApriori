@@ -28,11 +28,7 @@ extends Mapper<Object, Text, Text, Text>{
 
 	 @Override
 	protected void setup(Context context) throws IOException, InterruptedException {
-//		String[] parts = context.getTaskAttemptID().getTaskID().toString().split("_");
-//		System.out.println("-----------------MAPPER PARTITION Data number -----------------");
-//		System.out.println(parts[parts.length - 1]);
-//		System.out.println("-------------------------------------------------------");		
-//		mapID = Integer.parseInt(parts[parts.length - 1]);
+ 
 		nBlock = context.getConfiguration().getInt("number block data", 0);
 	}
 	  
