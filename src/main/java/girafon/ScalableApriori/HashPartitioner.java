@@ -15,13 +15,11 @@ public class HashPartitioner<K, V> extends Partitioner<K, V> {
 		
 		// now get the list
 		
-		String[] numberStrings = key.split("\t");
+		String[] numberStrings = key.split(" ");
 		
-		// newKey is the sum of all items
-		int newKey = 0;
-		for (int i = 0; i < numberStrings.length - 1; i++){   // we don't get the last one as it is the frequent
-			newKey = newKey +  Integer.parseInt(numberStrings[i]);
-		}
+		
+		int	newKey = Integer.parseInt(numberStrings[0]);
+		
 		
 				
 		return newKey % arg2;

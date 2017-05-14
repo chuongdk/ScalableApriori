@@ -11,6 +11,7 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.StringTokenizer;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
@@ -22,14 +23,20 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapred.SequenceFileInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapred.TextOutputFormat;
+import org.apache.hadoop.mapred.lib.ChainMapper;
 import org.apache.hadoop.mapred.lib.MultipleOutputs;
 import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.MultipleInputs;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
+import org.apache.hadoop.mapreduce.lib.input.*;
 
 // MapFIM input output   alpha    beta
 // ex:   output  1000  5000
@@ -44,7 +51,7 @@ public class App extends Configured implements Tool {
 	
 	final long DEFAULT_SPLIT_SIZE = 1  * 1024 * 1024;   
 	
-	
+	final long DEFAULT_DATA_SIZE = 1 * 1024 * 1024; 
 	
    
 	
@@ -57,7 +64,7 @@ public class App extends Configured implements Tool {
 	// we will output to Output/1,2,3,4
 	private Path getOutputPathCandidate(Configuration conf, int iteration) {
 		String sep = System.getProperty("file.separator");
-		return new Path(conf.get("output") + sep + "Candidate" + sep + String.valueOf(iteration));
+		return new Path(conf.get("output") + sep + "candidate" + sep + String.valueOf(iteration));
 	}	
 	
 	// we will output to Output/data
@@ -86,7 +93,7 @@ public class App extends Configured implements Tool {
 	
 	private Path getCandidatePathWithIteration(Configuration conf) throws IOException {
 		String sep = System.getProperty("file.separator");
-		return new Path(sep + conf.get("output") + sep + "candidate" + sep + conf.getInt("iteration", 1));
+		return new Path(sep + conf.get("output") + sep + "candidate" + sep + conf.getInt("iteration", 1) + sep);
 	}
 	
 	
@@ -99,15 +106,19 @@ public class App extends Configured implements Tool {
 	
 	
 	
-	Configuration setupConf(String[] args, int iteration) {
+	Configuration setupConf(String[] args, int iteration) throws IOException {
 		Configuration conf = new Configuration();
 		conf.set("input", args[0]);  // first step that finding all frequent itemset
 		conf.set("output", args[1]);  // first step that finding all frequent itemset
-		
+		conf.setLong("block size", DEFAULT_SPLIT_SIZE);
 		conf.setInt("support", Integer.valueOf(args[2]));
 		conf.setInt("beta", Integer.valueOf(args[3])); // beta threshold for DApriori
 				conf.setInt("iteration", iteration);  // first step that finding all frequent itemset
 
+		// set number of block data
+		if (iteration > 1)
+			conf.setInt("number block data", (int) ( (getFolderSize(conf) / DEFAULT_DATA_SIZE) +1));
+		
 		conf.setLong(
 			    FileInputFormat.SPLIT_MAXSIZE,
 			    DEFAULT_SPLIT_SIZE);
@@ -170,19 +181,49 @@ public class App extends Configured implements Tool {
 		
 		return job;
 	}
+	
+    public long getflSize(String args) throws IOException, FileNotFoundException
+    {
+        Configuration config = new Configuration();
+        Path path = new Path(args);
+        FileSystem hdfs = path.getFileSystem(config);
+        ContentSummary cSummary = hdfs.getContentSummary(path);
+        long length = cSummary.getLength();
+        return length;
+    }
+    
+    // get size of the compressed Data
+    public long getFolderSize(Configuration conf) throws IOException {
+		FileSystem fs = FileSystem.get(conf);
+		FileStatus[] status = fs.listStatus(getInputPathCompressData(conf)  ) ;	//récupère la liste des fichiers de sortie intermédiaires
+		
+		long totalSize = 0;
+		for(int i = 0; i<status.length; i++){
+			totalSize += getflSize(status[i].getPath().toString());			
+		}
+		
+    	return totalSize;
+    }
 
 	Job setupJobPartitionData(Configuration conf, int k) throws Exception {
-		Job job = Job.getInstance(conf, "MapFIM: Partion Data");
+
+		
+		Job job = Job.getInstance(conf, "MapFIM: Multiple Mappers : Partition and Duplicate, number of Block = " + conf.get("number block data"));
 		job.setJarByClass(App.class);
-		job.setMapperClass(MapPartitionData.class);
+//		 job.setMapperClass(MapPreprocess.class);
 //		job.setCombinerClass(CombinePreprocess.class);
+		MultipleInputs.addInputPath(job, getInputPathCompressData(conf), TextInputFormat.class, MapPartitionData.class);
+		MultipleInputs.addInputPath(job, getOutputPathCandidate(conf, 2), TextInputFormat.class, MapDuplicateCandidate.class);
+
+	 
+		job.setPartitionerClass(HashPartitioner.class);
+		
 		job.setReducerClass(ReduceMiningApriori.class);
 		job.setNumReduceTasks(numberReducers);
 		job.setOutputKeyClass(Text.class);
 		job.setOutputValueClass(Text.class);
- 
+
 		
-		FileInputFormat.addInputPath(job, getInputPathCompressData(conf));
 		// set output path: output/Candidate/Iteration
 		FileOutputFormat.setOutputPath(job, getOutputPath(conf, k));// output path for iteration 1 is: output/1
 		
@@ -245,7 +286,10 @@ public class App extends Configured implements Tool {
 		{
 			System.out.println("-------------------Mapper1: Partition Data---------------");
 			System.out.println("-------------------Mapper1: Partition Data---------------");
-			System.out.println("-------------------Mapper1: Partition Data---------------");			
+			System.out.println("-------------------Mapper1: Partition Data---------------");		
+
+		
+		
 			Configuration conf = setupConf(args, k);
 			Job job = setupJobPartitionData(conf, k);			 
 			job.waitForCompletion(true);			
@@ -277,7 +321,26 @@ public class App extends Configured implements Tool {
 
 
 
-
+class SplitMapper extends Mapper<Object,Text,Text,IntWritable>
+{
+    StringTokenizer xs;
+    private IntWritable dummyValue=new IntWritable(1);
+    //private String content;
+    private String tokens[];
+    @Override
+    public void map(Object key,Text value,Context context)throws IOException,InterruptedException{
+//      xs=new StringTokenizer(value.toString()," ");
+//      while(xs.hasMoreTokens())
+//      {
+//          content=(String)xs.nextToken();
+//      }
+        tokens=value.toString().split(" ");
+        for(String x:tokens)
+        {
+        context.write(new Text(x), dummyValue);
+        }
+    }   
+}
 
 
 
