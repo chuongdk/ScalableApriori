@@ -137,6 +137,8 @@ public class ReduceMiningApriori
 			   // we mine Data x Candidate
 			   if (candidate.size()>0) {
 				   System.out.println("\n\n\n\n\n\nMining " + data.size() + " " + candidate.size());
+				   System.out.println("keyA = " + keyA + ", prevKeyB =  " + prevKeyB + ", keyB = " +keyB );
+				   
 				   mining(context);
 			   }
 			   
@@ -166,6 +168,8 @@ public class ReduceMiningApriori
 	 public void cleanup(Context context) throws IOException, InterruptedException {
 		   if (candidate.size()>0) {
 			   System.out.println("\n\n\n\n\n\nMining " + data.size() + " " + candidate.size());
+			   System.out.println("keyA = " + prevKeyA + ", prevKeyB =  " + prevKeyB);
+			   
 			   mining(context);
 		   }		 
 

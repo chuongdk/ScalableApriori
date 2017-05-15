@@ -49,9 +49,9 @@ public class App extends Configured implements Tool {
 	
 	private int numberReducers = 2;
 	
-	final long DEFAULT_SPLIT_SIZE = 10  * 1024 * 1024;   
-	
-	final long DEFAULT_DATA_SIZE = 1 * 1024 * 1024; 
+	final long DEFAULT_SPLIT_SIZE = 2  * 1024 * 1024;   
+	final long DEFAULT_DATA_SIZE = 128 * 1024 * 1024;  // size of a data block
+	final long DEFAULT_CANDIDATE_SIZE = 8  * 1024 * 1024; // size of a candidate block   
 	
    
 	
@@ -122,9 +122,13 @@ public class App extends Configured implements Tool {
 				conf.setInt("iteration", iteration);  // first step that finding all frequent itemset
 
 		// set number of block data
-		if (iteration > 1)
-			conf.setInt("number block data", (int) ( (getFolderSize(conf) / DEFAULT_DATA_SIZE) +1));
-		
+		if (iteration > 1) {
+			int nBlockData = (int) ( (getFolderSize(getInputPathCompressData(conf), conf) / DEFAULT_DATA_SIZE) +1);
+			if (nBlockData < numberReducers)
+				nBlockData = numberReducers;
+			conf.setInt("number block data", nBlockData);
+			System.out.println("number of block data" + nBlockData);
+		}
 		conf.setLong(
 			    FileInputFormat.SPLIT_MAXSIZE,
 			    DEFAULT_SPLIT_SIZE);
@@ -183,7 +187,7 @@ public class App extends Configured implements Tool {
 			}
 		}
 		// set output path: output/Candidate/Iteration
-		FileOutputFormat.setOutputPath(job, getOutputPathCandidate(conf, 2));// output path for iteration 1 is: output/1
+		FileOutputFormat.setOutputPath(job, getOutputPathCandidate(conf, k));// output path for iteration 1 is: output/1
 		
 		return job;
 	}
@@ -199,23 +203,35 @@ public class App extends Configured implements Tool {
     }
     
     // get size of the compressed Data
-    public long getFolderSize(Configuration conf) throws IOException {
+    public long getFolderSize(Path path, Configuration conf) throws IOException {
 		FileSystem fs = FileSystem.get(conf);
-		FileStatus[] status = fs.listStatus(getInputPathCompressData(conf)  ) ;	//récupère la liste des fichiers de sortie intermédiaires
+		FileStatus[] status = fs.listStatus(path) ;	//récupère la liste des fichiers de sortie intermédiaires
 		
 		long totalSize = 0;
 		for(int i = 0; i<status.length; i++){
 			totalSize += getflSize(status[i].getPath().toString());			
 		}
-		
     	return totalSize;
     }
 
+    // get size of the compressed Data
+    public boolean isStop(Configuration conf, int iteration) throws IOException {
+    	return (getFolderSize(getOutputPath(conf, iteration), conf)==0);
+    }
+    
+    
 	Job setupJobPartitionData(Configuration conf, int k) throws Exception {
+		// number of block candidate
+		int nBlockCandidate = (int) ( (getFolderSize(getOutputPathCandidate(conf, k), conf) / DEFAULT_CANDIDATE_SIZE) +1);
+		conf.setInt("number block candidate", nBlockCandidate);
+		System.out.println("number of block candidate" + nBlockCandidate);
+
+		
 		Job job = Job.getInstance(conf, "MapFIM: Multiple Mappers : Partition and Duplicate, number of Block = " + conf.get("number block data"));
 		job.setJarByClass(App.class);
+	 
 		MultipleInputs.addInputPath(job, getInputPathCompressData(conf), TextInputFormat.class, MapPartitionData.class);
-		MultipleInputs.addInputPath(job, getOutputPathCandidate(conf, 2), TextInputFormat.class, MapDuplicateCandidate.class);
+		MultipleInputs.addInputPath(job, getOutputPathCandidate(conf, k), TextInputFormat.class, MapDuplicateCandidate.class);
 		job.setPartitionerClass(HashPartitioner.class);
 		job.setReducerClass(ReduceMiningApriori.class);
 		job.setNumReduceTasks(numberReducers);
@@ -286,37 +302,47 @@ public class App extends Configured implements Tool {
 			
 		// Candidate generation, k = 2
  		int k = 2;
+ 		boolean stop = false;
+ 		while (!stop)
 		{
-			System.out.println("-------------------Candidate Generation ---------------");
-			System.out.println("-------------------Candidate Generation ---------------");
-			System.out.println("-------------------Candidate Generation ---------------");
+			System.out.println("\n\n------------------------------------------------");
+
+			System.out.println("-------------------Candidate Generation ---------------" + k);
+			
 			Configuration conf = setupConf(args, k);
 			Job job = setupJobCandidateGeneration(conf, k);			 
 			job.waitForCompletion(true);			
-		}
 
-		// Multi Mappers 
-		// Mapper1: Partition data, Mapper2: Duplicate Candidate
-		{
-			System.out.println("-------------------Mapper1+2: Partition Data AND Duplicate Candidate---------------");
-			System.out.println("-------------------Mapper1+2: Partition Data AND Duplicate Candidate---------------");
-			System.out.println("-------------------Mapper1+2: Partition Data AND Duplicate Candidate---------------");
 			
-			Configuration conf = setupConf(args, k);
-			Job job = setupJobPartitionData(conf, k);			 
-			job.waitForCompletion(true);			
-		}
+			// verify if there is Candidate or Not
+			if (getFolderSize(getOutputPathCandidate(conf, k), conf) == 0){
+				stop = true;
+			}
+			else {
 
-		
-		// Getting Lk
-		{
-			System.out.println("-------------------Sum up to get Lk---------------");
-			System.out.println("-------------------Sum up to get Lk---------------");
-			System.out.println("-------------------Sum up to get Lk---------------");
+				// Multi Mappers 
+				// Mapper1: Partition data, Mapper2: Duplicate Candidate
+			 
+				System.out.println("-------------------Mapper1+2: Partition Data AND Duplicate Candidate---------------" + k);
+				
+				  conf = setupConf(args, k);
+				  job = setupJobPartitionData(conf, k);			 
+				job.waitForCompletion(true);			
+			 
+	
 			
-			Configuration conf = setupConf(args, k);
-			Job job = setupJobGetLk(conf, k);			 
-			job.waitForCompletion(true);			
+				// Getting Lk
+	 
+				System.out.println("-------------------Sum up to get Lk---------------" + k);
+				
+				  conf = setupConf(args, k);
+				  job = setupJobGetLk(conf, k);			 
+				job.waitForCompletion(true);
+				
+				stop = isStop(conf, k);
+				k++;
+			}
+			
 		}
 		
 		

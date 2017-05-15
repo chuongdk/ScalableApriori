@@ -1,6 +1,7 @@
 package girafon.ScalableApriori;
 
 import java.io.IOException;
+import java.util.Random;
 
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
@@ -10,7 +11,9 @@ public class MapDuplicateCandidate
 	extends Mapper<Object, Text, Text, Text>{
 	
 	private Integer mapID;
-	private int nBlock;
+	private int nBlockData;
+	private int nBlockCandidate;
+	private Random rand = new Random();
 	
 	 @Override
 	protected void setup(Context context) throws IOException, InterruptedException {
@@ -20,15 +23,17 @@ public class MapDuplicateCandidate
 		System.out.println("-------------------------------------------------------");		
 		mapID = Integer.parseInt(parts[parts.length - 1]);
 		mapID++;  // so mapID > 0
-		nBlock = context.getConfiguration().getInt("number block data", 0);
+		nBlockData = context.getConfiguration().getInt("number block data", 0);
+		nBlockCandidate = context.getConfiguration().getInt("number block candidate", 0);
 	}
 	  
 	 public void map(Object key, Text value, Context context
 	                 ) throws IOException, InterruptedException {
  
-	
-		for (Integer i = 0; i < nBlock; i++) {
-			context.write(new Text(i.toString() + " " + mapID.toString()), value);
+		 Integer keyRandom = rand.nextInt(nBlockCandidate) + 1;
+		 
+		for (Integer i = 0; i < nBlockData; i++) {
+			context.write(new Text(i.toString() + " " + keyRandom.toString()), value);
 		}
 		 
 		 
