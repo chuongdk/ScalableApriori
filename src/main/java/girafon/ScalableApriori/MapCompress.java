@@ -71,8 +71,16 @@ extends Mapper<Object, Text, Text, Text>{
 		 if (t.size() > 1) {
 			 	// transaction are sorted
 			 	Collections.sort(t);
-				String out = String.join(" ", t); 				
-				word.set(out);
+				//String out = String.join(" ", t);
+				
+				StringBuilder builder = new StringBuilder();
+				for(String s : t) {
+				    builder.append(s + " ");
+				}
+				String str = builder.toString();				
+				
+				
+				word.set(builder.toString());
 				context.write(word, new Text(""));
 		 }
 		 
