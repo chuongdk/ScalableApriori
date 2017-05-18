@@ -72,13 +72,8 @@ extends Mapper<Object, Text, Text, IntWritable>{
  				List<Integer> candidate = new ArrayList<Integer>(lk);
  				candidate.add(x);
  				Collections.sort(candidate);
- 				//String out = String.join(" ", candidate);
- 				StringBuilder builder = new StringBuilder();
- 				for (Integer s: candidate) {
- 					builder.append(s + " ");
- 				}
- 				
- 				word.set(builder.toString());
+ 				String out = String.join(" ", candidate); 				
+ 				word.set(out);
  				context.write(word, one);
  			 }
  		 }

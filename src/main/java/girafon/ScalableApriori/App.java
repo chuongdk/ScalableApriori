@@ -53,10 +53,12 @@ public class App extends Configured implements Tool {
 	
 	private int numberReducers = 2;
 	
-	final long DEFAULT_SPLIT_SIZE = 16  * 1024 * 1024;   
-	final long DEFAULT_DATA_SIZE = 2 * 1024 * 1024;  // size of a data block
-	final long DEFAULT_CANDIDATE_SIZE = 2  * 1024 * 1024; // size of a candidate block   
-	 
+	final long DEFAULT_SPLIT_SIZE = 128  * 1024 * 1024;   
+	final long DEFAULT_DATA_SIZE = 128 * 1024 * 1024;  // size of a data block
+	final long DEFAULT_CANDIDATE_SIZE = 16  * 1024 * 1024; // size of a candidate block   
+	
+   
+	
 	// we will output to Output/1,2,3,4
 	private Path getOutputPath(Configuration conf, int iteration) {
 		String sep = System.getProperty("file.separator");
