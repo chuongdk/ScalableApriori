@@ -24,7 +24,7 @@ extends Mapper<Object, Text, Text, Text>{
 	
 
 	 private Text word = new Text();
-	 private List<String> l1 = new ArrayList<String>();
+	 private List<Integer> l1 = new ArrayList<Integer>();
 	
 	  private void getCache(Context context) throws IOException {
 			 // Read file from distributed caches - each line is a item/itemset with its frequent
@@ -44,7 +44,7 @@ extends Mapper<Object, Text, Text, Text>{
 		    		String line=data.readLine();
 		    		if (line.matches("\\s*")) continue; // be friendly with empty lines
 		    		String item = line.substring(0, line.indexOf('\t'));
-		    		l1.add(item);
+		    		l1.add(Integer.parseInt(item));
 		    	}  
 			}
 			return;
@@ -59,27 +59,25 @@ extends Mapper<Object, Text, Text, Text>{
 	 public void map(Object key, Text value, Context context
 	                 ) throws IOException, InterruptedException {
 		 // Mapper get Lk, then join Lk x L1
-		 List<String>  t = new ArrayList<String>();
+		 List<Integer>  t = new ArrayList<Integer>();
 		 
 		 StringTokenizer itr = new StringTokenizer(value.toString());
 		 while (itr.hasMoreTokens()) {
-			 String item = itr.nextToken().toString();
+			 Integer item = Integer.parseInt(itr.nextToken().toString());
 			 if (l1.contains(item))
 				 t.add(item);
 		 }
 		 
+		
 		 if (t.size() > 1) {
 			 	// transaction are sorted
 			 	Collections.sort(t);
 				//String out = String.join(" ", t);
 				
 				StringBuilder builder = new StringBuilder();
-				for(String s : t) {
+				for(Integer s : t) {
 				    builder.append(s + " ");
 				}
-				String str = builder.toString();				
-				
-				
 				word.set(builder.toString());
 				context.write(word, new Text(""));
 		 }

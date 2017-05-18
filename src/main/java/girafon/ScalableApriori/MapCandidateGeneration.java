@@ -21,7 +21,7 @@ extends Mapper<Object, Text, Text, IntWritable>{
 	
 	 private final static IntWritable one = new IntWritable(1);
 	 private Text word = new Text();
-	 private List<String> l1 = new ArrayList<String>();
+	 private List<Integer> l1 = new ArrayList<Integer>();
 	
 	  private void getCache(Context context) throws IOException {
 			 // Read file from distributed caches - each line is a item/itemset with its frequent
@@ -42,7 +42,7 @@ extends Mapper<Object, Text, Text, IntWritable>{
 		    		String line=data.readLine();
 		    		if (line.matches("\\s*")) continue; // be friendly with empty lines
 		    		String item = line.substring(0, line.indexOf('\t'));
-		    		l1.add(item);
+		    		l1.add(Integer.parseInt(item));
 		    	}  
 			}
 			return;
@@ -57,21 +57,28 @@ extends Mapper<Object, Text, Text, IntWritable>{
 	 public void map(Object key, Text value, Context context
 	                 ) throws IOException, InterruptedException {
 		 // Mapper get Lk, then join Lk x L1
-		 List<String>  lk = new ArrayList<String>();
+		 List<Integer>  lk = new ArrayList<Integer>();
 		 
  		 StringTokenizer itr = new StringTokenizer(value.toString());
  		 while (itr.hasMoreTokens()) {
- 			 lk.add(itr.nextToken().toString());
+ 			 lk.add(Integer.parseInt(itr.nextToken().toString()));
  		 }
+ 		 
+ 		 // remove the frequency
  		 lk.remove(lk.size()-1);
 
- 		 for (String x:l1) {
+ 		 for (Integer x:l1) {
  			 if (!lk.contains(x)) {
- 				List<String> candidate = new ArrayList<String>(lk);
+ 				List<Integer> candidate = new ArrayList<Integer>(lk);
  				candidate.add(x);
  				Collections.sort(candidate);
- 				String out = String.join(" ", candidate); 				
- 				word.set(out);
+ 				//String out = String.join(" ", candidate);
+ 				StringBuilder builder = new StringBuilder();
+ 				for (Integer s: candidate) {
+ 					builder.append(s + " ");
+ 				}
+ 				
+ 				word.set(builder.toString());
  				context.write(word, one);
  			 }
  		 }

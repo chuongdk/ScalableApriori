@@ -1,4 +1,6 @@
 package girafon.ScalableApriori;
+ 
+
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -7,7 +9,8 @@ import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
-
+import java.io.UnsupportedEncodingException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -36,6 +39,7 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
+ 
 import org.apache.hadoop.mapreduce.lib.input.*;
 
 // MapFIM input output   alpha    beta
@@ -47,14 +51,12 @@ import org.apache.hadoop.mapreduce.lib.input.*;
 public class App extends Configured implements Tool {
 
 	
-	private int numberReducers = 4;
+	private int numberReducers = 2;
 	
-	final long DEFAULT_SPLIT_SIZE = 128  * 1024 * 1024;   
-	final long DEFAULT_DATA_SIZE = 128 * 1024 * 1024;  // size of a data block
-	final long DEFAULT_CANDIDATE_SIZE = 16  * 1024 * 1024; // size of a candidate block   
-	
-   
-	
+	final long DEFAULT_SPLIT_SIZE = 16  * 1024 * 1024;   
+	final long DEFAULT_DATA_SIZE = 2 * 1024 * 1024;  // size of a data block
+	final long DEFAULT_CANDIDATE_SIZE = 2  * 1024 * 1024; // size of a candidate block   
+	 
 	// we will output to Output/1,2,3,4
 	private Path getOutputPath(Configuration conf, int iteration) {
 		String sep = System.getProperty("file.separator");
@@ -349,7 +351,6 @@ public class App extends Configured implements Tool {
 		return 1;
 	}
 		
-	
 
 	public static void main(String[] args) throws Exception {
 		
@@ -361,6 +362,7 @@ public class App extends Configured implements Tool {
 		System.out.println("beta : " + args[3]);
 		System.out.println("Total time : " + (endTime - beginTime)/1000 + " seconds.");		
 		System.exit(exitCode);
+
 	}
 
 }

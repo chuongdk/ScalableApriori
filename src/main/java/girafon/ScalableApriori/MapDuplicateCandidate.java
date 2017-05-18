@@ -10,7 +10,7 @@ import org.apache.hadoop.mapreduce.Mapper.Context;
 public class MapDuplicateCandidate 
 	extends Mapper<Object, Text, Text, Text>{
 	
-	private Integer mapID;
+ 
 	private int nBlockData;
 	private int nBlockCandidate;
 	private Random rand = new Random();
@@ -21,8 +21,7 @@ public class MapDuplicateCandidate
 		System.out.println("-----------------MAPPER DUPLICATE CANDIDATE number -----------------");
 		System.out.println(parts[parts.length - 1]);
 		System.out.println("-------------------------------------------------------");		
-		mapID = Integer.parseInt(parts[parts.length - 1]);
-		mapID++;  // so mapID > 0
+		 
 		nBlockData = context.getConfiguration().getInt("number block data", 0);
 		nBlockCandidate = context.getConfiguration().getInt("number block candidate", 0);
 	}

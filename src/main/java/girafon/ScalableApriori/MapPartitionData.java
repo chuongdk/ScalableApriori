@@ -22,7 +22,7 @@ import java.util.Random;
 public class MapPartitionData 
 extends Mapper<Object, Text, Text, Text>{
 	
-	private Integer mapID;
+ 
 	private Integer nBlock = 0;
 	private Random rand = new Random();
 
@@ -35,11 +35,7 @@ extends Mapper<Object, Text, Text, Text>{
 	 public void map(Object key, Text value, Context context
 	                 ) throws IOException, InterruptedException {
 
-//			Configuration			conf = context.getConfiguration();
-//		    Long blockSize = conf.getLong("block size", 0);	//on récupère la taille d'un bloc afin de savoir dans quel bloc on se trouve
-//		    Integer currentBlock = (int)((((long)key.get())/blockSize)+1);	//key étant l'octet de début de ligne, on peut savoir dans quel bloc on se trouve	 
-		    
-
+  
 		 Integer keyRandom = rand.nextInt(nBlock);
 		
 		context.write(new Text(keyRandom.toString() + " 0"), value);
