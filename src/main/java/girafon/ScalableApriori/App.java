@@ -54,8 +54,8 @@ public class App extends Configured implements Tool {
 	private int numberReducers = 2;
 	
 	final long DEFAULT_SPLIT_SIZE = 128  * 1024 * 1024;   
-	final long DEFAULT_DATA_SIZE = 128 * 1024 * 1024;  // size of a data block
-	final long DEFAULT_CANDIDATE_SIZE = 16  * 1024 * 1024; // size of a candidate block   
+	final long DEFAULT_DATA_SIZE = 2 * 1024 * 1024;  // size of a data block
+	final long DEFAULT_CANDIDATE_SIZE = 2  * 1024 * 1024; // size of a candidate block   
 	
    
 	
@@ -310,33 +310,25 @@ public class App extends Configured implements Tool {
  		while (!stop)
 		{
 			System.out.println("\n\n------------------------------------------------");
-
-			System.out.println("-------------------Candidate Generation ---------------" + k);
-			
+			System.out.println("-------------------Candidate Generation ---------------" + k);		
 			Configuration conf = setupConf(args, k);
 			Job job = setupJobCandidateGeneration(conf, k);			 
 			job.waitForCompletion(true);			
-
-			
 			// verify if there is Candidate or Not
 			if (getFolderSize(getOutputPathCandidate(conf, k), conf) == 0){
 				stop = true;
+				k--;
+				printResult(conf, k, args);
 			}
 			else {
-
 				// Multi Mappers 
-				// Mapper1: Partition data, Mapper2: Duplicate Candidate
-			 
+				// Mapper1: Partition data, Mapper2: Duplicate Candidate	 
 				System.out.println("-------------------Mapper1+2: Partition Data AND Duplicate Candidate---------------" + k);
 				
 				  conf = setupConf(args, k);
 				  job = setupJobPartitionData(conf, k);			 
 				job.waitForCompletion(true);			
-			 
-	
-			
 				// Getting Lk
-	 
 				System.out.println("-------------------Sum up to get Lk---------------" + k);
 				
 				  conf = setupConf(args, k);
@@ -344,15 +336,49 @@ public class App extends Configured implements Tool {
 				job.waitForCompletion(true);
 				
 				stop = isStop(conf, k);
+				if (stop)
+					printResult(conf, k, args);
 				k++;
 			}
-			
 		}
 		
 		
 		return 1;
 	}
 		
+	public void printResult(Configuration conf, int k, String args[]) throws IOException, InterruptedException {
+		System.out.println("Print result");
+		String sep = System.getProperty("file.separator");
+
+		
+		List<String> commands = new ArrayList<String>();
+	    commands.add("hdfs");
+	    commands.add("dfs");
+	    commands.add("-getmerge");
+	    
+	    for (Integer i = 1; i <= k; i++) {
+	    	String output = conf.get("output") + sep + i.toString();  
+	    	output += "/part*";
+	    	commands.add(output);
+	    }
+	    
+	    String outputFile = "result_" + args[0].substring(6) + "_support_" +    args[2] + ".txt";
+    	commands.add(outputFile);
+	    
+	    //Run macro on target
+       ProcessBuilder pb = new ProcessBuilder(commands);
+       pb.directory(new File("."));
+       pb.redirectErrorStream(true);
+       Process process = pb.start();
+       
+       System.out.println("Command: " + commands);
+       //Check result
+       if (process.waitFor() == 0) {
+           System.out.println("Success!");
+           System.out.println("----------------------------------------");
+       }	           
+	           		
+	}
 
 	public static void main(String[] args) throws Exception {
 		
@@ -364,6 +390,7 @@ public class App extends Configured implements Tool {
 		System.out.println("beta : " + args[3]);
 		System.out.println("Total time : " + (endTime - beginTime)/1000 + " seconds.");		
 		System.exit(exitCode);
+		
 
 	}
 

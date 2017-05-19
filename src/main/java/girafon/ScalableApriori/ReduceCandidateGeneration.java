@@ -18,6 +18,7 @@ public class ReduceCandidateGeneration
 	
 	@Override
 	protected void setup(Context context) throws IOException, InterruptedException {
+		System.out.println("---------------------REDUCER for CANDIDATE GENERATION--------------");
 		Configuration config = context.getConfiguration();
 		count 	= config.getInt("iteration", 0);		
 		return;

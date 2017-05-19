@@ -78,6 +78,8 @@ extends Mapper<Object, Text, Text, Text>{
 				for(Integer s : t) {
 				    builder.append(s + " ");
 				}
+				// delete the last space
+				builder.deleteCharAt(builder.length()-1);
 				word.set(builder.toString());
 				context.write(word, new Text(""));
 		 }
