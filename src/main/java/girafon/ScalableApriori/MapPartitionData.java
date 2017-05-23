@@ -37,7 +37,7 @@ extends Mapper<Object, Text, Text, Text>{
 
   
 		 Integer keyRandom = rand.nextInt(nBlock);
-		
+ 
 		context.write(new Text(keyRandom.toString() + " 0"), value);
 		 
 		 

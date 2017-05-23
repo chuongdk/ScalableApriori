@@ -51,11 +51,11 @@ import org.apache.hadoop.mapreduce.lib.input.*;
 public class App extends Configured implements Tool {
 
 	
-	private int numberReducers = 2;
+	private int numberReducers = 1;
 	
 	final long DEFAULT_SPLIT_SIZE = 128  * 1024 * 1024;   
-	final long DEFAULT_DATA_SIZE = 2 * 1024 * 1024;  // size of a data block
-	final long DEFAULT_CANDIDATE_SIZE = 2  * 1024 * 1024; // size of a candidate block   
+	final long DEFAULT_DATA_SIZE = 4 * 1024 * 1024;  // size of a data block
+	final long DEFAULT_CANDIDATE_SIZE = 128  * 1024 * 1024; // size of a candidate block   
 	
    
 	
