@@ -33,6 +33,7 @@ public class ReduceCandidateGeneration
 	   
 	   // is it a TRUE candidate 
 	   if (sum == count) {
+	   //if (sum >= 2) {
 		   context.write(key, new Text(""));
 	   }
 	}
